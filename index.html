@@ -67,6 +67,8 @@
 
 <script>
 
+<script>
+
 async function startCamera() {
 
   const status =
@@ -75,11 +77,38 @@ async function startCamera() {
   const video =
     document.getElementById('video');
 
+
   status.innerText =
-    'Tražim kameru...';
+    'POKUŠAVAM DA POKRENEM KAMERU...';
 
 
   try {
+
+    if (
+      !navigator.mediaDevices
+    ) {
+
+      throw new Error(
+        'navigator.mediaDevices NIJE DOSTUPAN'
+      );
+
+    }
+
+
+    if (
+      !navigator.mediaDevices.getUserMedia
+    ) {
+
+      throw new Error(
+        'getUserMedia NIJE DOSTUPAN'
+      );
+
+    }
+
+
+    status.innerText =
+      'getUserMedia je dostupan. Tražim dozvolu...';
+
 
     const stream =
       await navigator.mediaDevices.getUserMedia({
@@ -91,36 +120,65 @@ async function startCamera() {
       });
 
 
+    status.innerText =
+      'STREAM JE DOBIJEN. POKUŠAVAM VIDEO...';
+
+
     video.srcObject =
       stream;
+
+
+    try {
+
+      await video.play();
+
+    } catch (playError) {
+
+      status.innerText =
+        'VIDEO PLAY GREŠKA: ' +
+        playError.name +
+        ' — ' +
+        playError.message;
+
+      return;
+
+    }
 
 
     status.innerText =
       'KAMERA RADI!';
 
 
-    console.log(
-      'Camera stream:',
-      stream
-    );
-
-
   } catch (error) {
 
+    status.innerText =
+
+      'GREŠKA KAMERE:' +
+
+      '\n\n' +
+
+      'Naziv: ' +
+
+      error.name +
+
+      '\n\n' +
+
+      'Poruka: ' +
+
+      error.message;
+
+
     console.error(
+      'CAMERA ERROR',
       error
     );
-
-
-    status.innerText =
-      'GREŠKA: ' +
-      error.name +
-      ' — ' +
-      error.message;
 
   }
 
 }
+
+</script>
+
 
 </script>
 
