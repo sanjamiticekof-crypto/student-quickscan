@@ -2,6 +2,7 @@
 <html lang="sr">
 
 <head>
+
   <meta charset="UTF-8">
 
   <meta
@@ -9,60 +10,104 @@
     content="width=device-width, initial-scale=1.0"
   >
 
-  <title>Test kamere</title>
+  <title>Test QR skenera</title>
+
+  <script src="https://unpkg.com/@zxing/browser@0.1.5/umd/index.min.js"></script>
 
   <style>
+
     body {
       font-family: Arial, sans-serif;
-      text-align: center;
+      background: #f5f7fb;
+      margin: 0;
       padding: 20px;
+      text-align: center;
     }
 
-    video {
+    h1 {
+      font-size: 24px;
+    }
+
+    #video {
       width: 100%;
       max-width: 500px;
-      background: black;
-      margin-top: 20px;
+      background: #000;
+      border-radius: 12px;
+      margin-top: 15px;
     }
 
     button {
       width: 100%;
       max-width: 500px;
       padding: 16px;
-      font-size: 18px;
       margin-top: 20px;
+      border: none;
+      border-radius: 10px;
+      background: #1a73e8;
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
     }
 
     #status {
       margin-top: 20px;
       font-size: 18px;
-      white-space: pre-line;
+      line-height: 1.5;
     }
+
+    #result {
+      margin-top: 20px;
+      padding: 15px;
+      background: #e6f4ea;
+      color: #137333;
+      border-radius: 10px;
+      font-size: 20px;
+      font-weight: bold;
+      word-break: break-word;
+    }
+
   </style>
+
 </head>
+
 
 <body>
 
-  <h1>Test kamere</h1>
+  <h1>
+    Test QR skenera
+  </h1>
 
-  <button id="start">
-    POKRENI KAMERU
+  <button
+    id="startButton">
+
+    POKRENI SKENER
+
   </button>
+
 
   <video
     id="video"
     autoplay
+    muted
     playsinline>
   </video>
 
+
   <div id="status">
-    Kamera nije pokrenuta.
+
+    Skener nije pokrenut.
+
   </div>
 
-<script>
 
-const button =
-  document.getElementById('start');
+  <div
+    id="result"
+    style="display:none;">
+
+  </div>
+
+
+<script>
 
 const video =
   document.getElementById('video');
@@ -70,31 +115,145 @@ const video =
 const status =
   document.getElementById('status');
 
+const result =
+  document.getElementById('result');
 
-button.addEventListener(
+const startButton =
+  document.getElementById('startButton');
+
+
+let controls = null;
+
+
+/* =====================================================
+   POKRETANJE QR SKENERA
+===================================================== */
+
+startButton.addEventListener(
   'click',
   async function () {
 
+    startButton.disabled = true;
+
     status.textContent =
-      'Pokušavam da pokrenem kameru...';
+      'Pokrećem kameru...';
+
 
     try {
 
-      const stream =
-        await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: false
-        });
+      const codeReader =
+        new ZXingBrowser.BrowserQRCodeReader();
 
-      video.srcObject =
-        stream;
-
-      await video.play();
 
       status.textContent =
-        'KAMERA RADI!';
+        'Tražim kameru...';
+
+
+      /*
+       * Dobijamo dostupne video uređaje.
+       */
+
+      const videoInputDevices =
+        await ZXingBrowser.BrowserCodeReader
+          .listVideoInputDevices();
+
+
+      if (
+        !videoInputDevices ||
+        videoInputDevices.length === 0
+      ) {
+
+        throw new Error(
+          'Nije pronađena kamera.'
+        );
+
+      }
+
+
+      /*
+       * Na telefonu pokušavamo
+       * da izaberemo zadnju kameru.
+       */
+
+      let selectedDevice =
+        videoInputDevices.find(
+          device => {
+
+            const label =
+              String(
+                device.label || ''
+              ).toLowerCase();
+
+            return (
+              label.includes('back') ||
+              label.includes('rear') ||
+              label.includes('environment') ||
+              label.includes('zadnja')
+            );
+
+          }
+        );
+
+
+      /*
+       * Ako je ne pronađemo,
+       * koristimo prvu dostupnu kameru.
+       */
+
+      if (!selectedDevice) {
+
+        selectedDevice =
+          videoInputDevices[
+            videoInputDevices.length - 1
+          ];
+
+      }
+
+
+      status.textContent =
+        'Kamera pronađena. Usmerite kameru na QR kod.';
+
+
+      /*
+       * Pokrećemo QR očitavanje.
+       */
+
+      controls =
+        await codeReader.decodeFromVideoDevice(
+
+          selectedDevice.deviceId,
+
+          video,
+
+          (
+            resultObject,
+            errorObject
+          ) => {
+
+            if (resultObject) {
+
+              const text =
+                resultObject
+                  .getText();
+
+
+              showResult(
+                text
+              );
+
+            }
+
+          }
+
+        );
+
 
     } catch (error) {
+
+      console.error(
+        error
+      );
+
 
       status.textContent =
         'GREŠKA:\n' +
@@ -102,12 +261,52 @@ button.addEventListener(
         '\n' +
         error.message;
 
+
+      startButton.disabled =
+        false;
+
     }
 
   }
 );
 
+
+/* =====================================================
+   PRIKAZ REZULTATA
+===================================================== */
+
+function showResult(
+  text
+) {
+
+  result.style.display =
+    'block';
+
+
+  result.textContent =
+    'OČITANO:\n' +
+    text;
+
+
+  status.textContent =
+    'QR kod je uspešno očitan.';
+
+
+  /*
+   * Zaustavljamo trenutno očitavanje
+   * samo radi testa.
+   */
+
+  if (controls) {
+
+    controls.stop();
+
+  }
+
+}
+
 </script>
 
 </body>
+
 </html>
