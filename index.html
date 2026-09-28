@@ -222,31 +222,96 @@ async function startScanner() {
     return;
   }
 
-
   try {
 
-    showInfo(
-      'Pokretanje kamere...'
-    );
+    showInfo('Tražim kameru...');
+
+    /*
+     * Prvo tražimo dozvolu.
+     */
+    const stream =
+      await navigator.mediaDevices.getUserMedia({
+        video: true
+      });
+
+    /*
+     * Zaustavljamo samo privremeni stream.
+     */
+    stream
+      .getTracks()
+      .forEach(track => track.stop());
 
 
     /*
-     * Tražimo dozvolu za kameru.
+     * Sada dobijamo konkretne kamere.
      */
-
-    const stream =
-      await navigator
-        .mediaDevices
-        .getUserMedia({
-          video: true
-        });
+    const devices =
+      await navigator.mediaDevices.enumerateDevices();
 
 
-    stream
-      .getTracks()
-      .forEach(
-        track => track.stop()
+    const cameras =
+      devices.filter(
+        device =>
+          device.kind === 'videoinput'
       );
+
+
+    if (
+      !cameras ||
+      cameras.length === 0
+    ) {
+
+      throw new Error(
+        'Telefon nije pronašao kameru.'
+      );
+    }
+
+
+    /*
+     * Tražimo zadnju kameru.
+     */
+    let selectedCamera =
+      cameras.find(
+        camera => {
+
+          const label =
+            String(
+              camera.label || ''
+            ).toLowerCase();
+
+          return (
+
+            label.includes('back') ||
+
+            label.includes('rear') ||
+
+            label.includes('environment') ||
+
+            label.includes('zadnja') ||
+
+            label.includes('glavna')
+
+          );
+
+        }
+      );
+
+
+    /*
+     * Ako naziv nije dostupan,
+     * uzimamo prvu kameru.
+     */
+    if (!selectedCamera) {
+
+      selectedCamera =
+        cameras[0];
+
+    }
+
+
+    showInfo(
+      'Pokrećem kameru...'
+    );
 
 
     scanner =
@@ -257,9 +322,7 @@ async function startScanner() {
 
     await scanner.start(
 
-      {
-        facingMode: 'environment'
-      },
+      selectedCamera.deviceId,
 
       {
         fps: 10,
@@ -301,16 +364,23 @@ async function startScanner() {
   } catch (error) {
 
     console.error(
+      'Camera error:',
       error
     );
 
 
     showError(
       'Kamera nije mogla da se pokrene. ' +
-      'Proverite dozvolu za kameru.'
+      'Greška: ' +
+      (
+        error.name ||
+        error.message ||
+        'nepoznata greška'
+      )
     );
   }
 }
+
 
 
 /* =====================================================
