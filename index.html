@@ -2,7 +2,6 @@
 <html lang="sr">
 
 <head>
-
   <meta charset="UTF-8">
 
   <meta
@@ -13,7 +12,6 @@
   <title>Test kamere</title>
 
   <style>
-
     body {
       font-family: Arial, sans-serif;
       text-align: center;
@@ -23,9 +21,8 @@
     video {
       width: 100%;
       max-width: 500px;
-      margin-top: 20px;
-      border-radius: 12px;
       background: black;
+      margin-top: 20px;
     }
 
     button {
@@ -39,18 +36,16 @@
     #status {
       margin-top: 20px;
       font-size: 18px;
+      white-space: pre-line;
     }
-
   </style>
-
 </head>
-
 
 <body>
 
   <h1>Test kamere</h1>
 
-  <button onclick="startCamera()">
+  <button id="start">
     POKRENI KAMERU
   </button>
 
@@ -64,125 +59,55 @@
     Kamera nije pokrenuta.
   </div>
 
-
 <script>
 
-<script>
+const button =
+  document.getElementById('start');
 
-async function startCamera() {
+const video =
+  document.getElementById('video');
 
-  const status =
-    document.getElementById('status');
-
-  const video =
-    document.getElementById('video');
-
-
-  status.innerText =
-    'POKUŠAVAM DA POKRENEM KAMERU...';
+const status =
+  document.getElementById('status');
 
 
-  try {
+button.addEventListener(
+  'click',
+  async function () {
 
-    if (
-      !navigator.mediaDevices
-    ) {
-
-      throw new Error(
-        'navigator.mediaDevices NIJE DOSTUPAN'
-      );
-
-    }
-
-
-    if (
-      !navigator.mediaDevices.getUserMedia
-    ) {
-
-      throw new Error(
-        'getUserMedia NIJE DOSTUPAN'
-      );
-
-    }
-
-
-    status.innerText =
-      'getUserMedia je dostupan. Tražim dozvolu...';
-
-
-    const stream =
-      await navigator.mediaDevices.getUserMedia({
-
-        video: true,
-
-        audio: false
-
-      });
-
-
-    status.innerText =
-      'STREAM JE DOBIJEN. POKUŠAVAM VIDEO...';
-
-
-    video.srcObject =
-      stream;
-
+    status.textContent =
+      'Pokušavam da pokrenem kameru...';
 
     try {
 
+      const stream =
+        await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false
+        });
+
+      video.srcObject =
+        stream;
+
       await video.play();
 
-    } catch (playError) {
+      status.textContent =
+        'KAMERA RADI!';
 
-      status.innerText =
-        'VIDEO PLAY GREŠKA: ' +
-        playError.name +
-        ' — ' +
-        playError.message;
+    } catch (error) {
 
-      return;
+      status.textContent =
+        'GREŠKA:\n' +
+        error.name +
+        '\n' +
+        error.message;
 
     }
 
-
-    status.innerText =
-      'KAMERA RADI!';
-
-
-  } catch (error) {
-
-    status.innerText =
-
-      'GREŠKA KAMERE:' +
-
-      '\n\n' +
-
-      'Naziv: ' +
-
-      error.name +
-
-      '\n\n' +
-
-      'Poruka: ' +
-
-      error.message;
-
-
-    console.error(
-      'CAMERA ERROR',
-      error
-    );
-
   }
-
-}
-
-</script>
-
+);
 
 </script>
-
 
 </body>
-
 </html>
