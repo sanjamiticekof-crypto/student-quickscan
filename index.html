@@ -10,110 +10,35 @@
     content="width=device-width, initial-scale=1.0"
   >
 
-  <title>Brzo skeniranje - Javljanje</title>
-
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <title>Test kamere</title>
 
   <style>
 
-    * {
-      box-sizing: border-box;
-    }
-
     body {
       font-family: Arial, sans-serif;
-      background: #f5f7fb;
-      margin: 0;
-      padding: 15px;
-      color: #202124;
-    }
-
-    .container {
-      max-width: 520px;
-      margin: 0 auto;
-      background: white;
+      text-align: center;
       padding: 20px;
-      border-radius: 16px;
-      box-shadow:
-        0 4px 20px rgba(0,0,0,0.08);
     }
 
-    h1 {
-      text-align: center;
-      font-size: 25px;
-      margin-top: 0;
-    }
-
-    .activity {
-      background: #e8f0fe;
-      color: #174ea6;
-      padding: 15px;
-      border-radius: 10px;
-      text-align: center;
-      font-size: 21px;
-      font-weight: bold;
-      margin-bottom: 20px;
-    }
-
-    .instructions {
-      text-align: center;
-      color: #5f6368;
-      line-height: 1.5;
-      margin-bottom: 20px;
-    }
-
-    #reader {
+    video {
       width: 100%;
-    }
-
-    .student {
-      text-align: center;
+      max-width: 500px;
       margin-top: 20px;
-      padding: 15px;
-      border-radius: 10px;
-      background: #e6f4ea;
-      color: #137333;
-      font-size: 19px;
-      font-weight: bold;
-      line-height: 1.5;
-      display: none;
-    }
-
-    .count {
-      font-size: 32px;
-      margin-top: 5px;
-    }
-
-    .error {
-      background: #fce8e6;
-      color: #c5221f;
-    }
-
-    .info {
-      background: #e8f0fe;
-      color: #174ea6;
+      border-radius: 12px;
+      background: black;
     }
 
     button {
       width: 100%;
-      min-height: 52px;
-      border: none;
-      border-radius: 10px;
-      font-size: 17px;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 15px;
+      max-width: 500px;
+      padding: 16px;
+      font-size: 18px;
+      margin-top: 20px;
     }
 
-    #startButton {
-      background: #1a73e8;
-      color: white;
-    }
-
-    #stopButton {
-      background: #e8eaed;
-      color: #202124;
-      display: none;
+    #status {
+      margin-top: 20px;
+      font-size: 18px;
     }
 
   </style>
@@ -123,624 +48,79 @@
 
 <body>
 
+  <h1>Test kamere</h1>
 
-<div class="container">
-
-
-  <h1>
-    Brzo skeniranje
-  </h1>
-
-
-  <div class="activity">
-    JAVLJANJE
-  </div>
-
-
-  <div class="instructions">
-
-    Pritisnite dugme i dozvolite pristup kameri.
-
-    <br><br>
-
-    Student pokaže svoj QR kod.
-
-  </div>
-
-
-  <div id="reader"></div>
-
-
-  <button
-    id="startButton"
-    onclick="startScanner()">
-
-    POKRENI SKENER
-
+  <button onclick="startCamera()">
+    POKRENI KAMERU
   </button>
 
+  <video
+    id="video"
+    autoplay
+    playsinline>
+  </video>
 
-  <button
-    id="stopButton"
-    onclick="stopScanner()">
-
-    ZAUSTAVI SKENER
-
-  </button>
-
-
-  <div
-    id="student"
-    class="student">
+  <div id="status">
+    Kamera nije pokrenuta.
   </div>
-
-
-</div>
 
 
 <script>
 
+async function startCamera() {
 
-/*
- * VAŽNO:
- *
- * Ovde ćemo kasnije staviti
- * URL našeg Apps Script Web App-a.
- */
+  const status =
+    document.getElementById('status');
 
-const APPS_SCRIPT_URL =
-  'https://script.google.com/macros/s/AKfycbwSFvlvKkFNdTDuY55fp9dQJLGQSZ9R_2ywH1-UQNyB1G834U68mi2Jzg5yXD_hMkT4/exec';
+  const video =
+    document.getElementById('video');
 
+  status.innerText =
+    'Tražim kameru...';
 
-let scanner = null;
-
-let scanning = false;
-
-let processing = false;
-
-let lastIndex = '';
-
-let lastScanTime = 0;
-
-
-/*
- * Zaštita od toga da kamera
- * pročita isti QR više puta
- * dok ga student još drži.
- */
-
-const SAME_QR_COOLDOWN = 4000;
-
-
-/* =====================================================
-   POKRETANJE SKENERA
-===================================================== */
-
-async function startScanner() {
-
-  if (scanning) {
-    return;
-  }
 
   try {
 
-    showInfo('Tražim kameru...');
-
-    /*
-     * Prvo tražimo dozvolu.
-     */
     const stream =
       await navigator.mediaDevices.getUserMedia({
-        video: true
+
+        video: true,
+
+        audio: false
+
       });
 
-    /*
-     * Zaustavljamo samo privremeni stream.
-     */
-    stream
-      .getTracks()
-      .forEach(track => track.stop());
+
+    video.srcObject =
+      stream;
 
 
-    /*
-     * Sada dobijamo konkretne kamere.
-     */
-    const devices =
-      await navigator.mediaDevices.enumerateDevices();
+    status.innerText =
+      'KAMERA RADI!';
 
 
-    const cameras =
-      devices.filter(
-        device =>
-          device.kind === 'videoinput'
-      );
-
-
-    if (
-      !cameras ||
-      cameras.length === 0
-    ) {
-
-      throw new Error(
-        'Telefon nije pronašao kameru.'
-      );
-    }
-
-
-    /*
-     * Tražimo zadnju kameru.
-     */
-    let selectedCamera =
-      cameras.find(
-        camera => {
-
-          const label =
-            String(
-              camera.label || ''
-            ).toLowerCase();
-
-          return (
-
-            label.includes('back') ||
-
-            label.includes('rear') ||
-
-            label.includes('environment') ||
-
-            label.includes('zadnja') ||
-
-            label.includes('glavna')
-
-          );
-
-        }
-      );
-
-
-    /*
-     * Ako naziv nije dostupan,
-     * uzimamo prvu kameru.
-     */
-    if (!selectedCamera) {
-
-      selectedCamera =
-        cameras[0];
-
-    }
-
-
-    showInfo(
-      'Pokrećem kameru...'
-    );
-
-
-    scanner =
-      new Html5Qrcode(
-        'reader'
-      );
-
-
-    await scanner.start(
-
-      selectedCamera.deviceId,
-
-      {
-        fps: 10,
-
-        qrbox: {
-          width: 250,
-          height: 250
-        }
-
-      },
-
-      onScanSuccess,
-
-      onScanFailure
-
-    );
-
-
-    scanning = true;
-
-
-    document.getElementById(
-      'startButton'
-    ).style.display =
-      'none';
-
-
-    document.getElementById(
-      'stopButton'
-    ).style.display =
-      'block';
-
-
-    showInfo(
-      'Skener je spreman. Pokažite QR kod.'
+    console.log(
+      'Camera stream:',
+      stream
     );
 
 
   } catch (error) {
 
     console.error(
-      'Camera error:',
       error
     );
 
 
-    showError(
-      'Kamera nije mogla da se pokrene. ' +
-      'Greška: ' +
-      (
-        error.name ||
-        error.message ||
-        'nepoznata greška'
-      )
-    );
-  }
-}
+    status.innerText =
+      'GREŠKA: ' +
+      error.name +
+      ' — ' +
+      error.message;
 
-
-
-/* =====================================================
-   QR OČITAN
-===================================================== */
-
-function onScanSuccess(
-  decodedText
-) {
-
-  if (processing) {
-    return;
   }
 
-
-  const index =
-    extractIndex(
-      decodedText
-    );
-
-
-  if (!index) {
-
-    showError(
-      'QR kod ne sadrži broj indeksa.'
-    );
-
-    return;
-  }
-
-
-  const now =
-    Date.now();
-
-
-  /*
-   * Isti student ne može biti
-   * slučajno evidentiran više puta
-   * u nekoliko milisekundi.
-   */
-
-  if (
-
-    index === lastIndex &&
-
-    now - lastScanTime <
-      SAME_QR_COOLDOWN
-
-  ) {
-
-    return;
-  }
-
-
-  lastIndex =
-    index;
-
-  lastScanTime =
-    now;
-
-  processing =
-    true;
-
-
-  showInfo(
-    'Upisivanje javljanja...'
-  );
-
-
-  /*
-   * Šaljemo broj indeksa
-   * našem Apps Script-u.
-   */
-
-  fetch(
-    APPS_SCRIPT_URL +
-    '?action=saveJavljanje' +
-    '&index=' +
-    encodeURIComponent(index)
-  )
-
-  .then(
-    response =>
-      response.json()
-  )
-
-  .then(
-    data => {
-
-      processing =
-        false;
-
-
-      if (
-        data.success
-      ) {
-
-        showSuccess(
-
-          data.student,
-
-          data.count
-
-        );
-
-      } else {
-
-        showError(
-          data.error ||
-          'Javljanje nije sačuvano.'
-        );
-      }
-
-    }
-  )
-
-  .catch(
-    error => {
-
-      processing =
-        false;
-
-
-      console.error(
-        error
-      );
-
-
-      showError(
-        'Greška u povezivanju sa evidencijom.'
-      );
-
-    }
-  );
 }
-
-
-/* =====================================================
-   IZVLAČENJE INDEKSA IZ QR-a
-===================================================== */
-
-function extractIndex(
-  text
-) {
-
-  text =
-    String(
-      text || ''
-    ).trim();
-
-
-  /*
-   * Ako QR sadrži URL
-   * sa ?index=...
-   */
-
-  try {
-
-    const url =
-      new URL(text);
-
-
-    const index =
-      url.searchParams.get(
-        'index'
-      );
-
-
-    if (index) {
-
-      return index.trim();
-    }
-
-  } catch (error) {
-
-    /*
-     * Nije URL.
-     */
-  }
-
-
-  /*
-   * Ako QR direktno sadrži
-   * broj indeksa.
-   */
-
-  return text;
-}
-
-
-/* =====================================================
-   ZAUSTAVLJANJE
-===================================================== */
-
-async function stopScanner() {
-
-  try {
-
-    if (
-      scanner &&
-      scanning
-    ) {
-
-      await scanner.stop();
-
-      await scanner.clear();
-    }
-
-  } catch (error) {
-
-    console.error(
-      error
-    );
-  }
-
-
-  scanning =
-    false;
-
-
-  document.getElementById(
-    'startButton'
-  ).style.display =
-    'block';
-
-
-  document.getElementById(
-    'stopButton'
-  ).style.display =
-    'none';
-
-
-  showInfo(
-    'Skener je zaustavljen.'
-  );
-}
-
-
-/* =====================================================
-   PORUKE
-===================================================== */
-
-function showInfo(
-  message
-) {
-
-  const element =
-    document.getElementById(
-      'student'
-    );
-
-
-  element.style.display =
-    'block';
-
-
-  element.className =
-    'student info';
-
-
-  element.innerHTML =
-    message;
-}
-
-
-function showSuccess(
-  student,
-  count
-) {
-
-  const element =
-    document.getElementById(
-      'student'
-    );
-
-
-  element.style.display =
-    'block';
-
-
-  element.className =
-    'student';
-
-
-  element.innerHTML =
-
-    '✓ ' +
-
-    escapeHtml(
-      student.firstName
-    ) +
-
-    ' ' +
-
-    escapeHtml(
-      student.lastName
-    ) +
-
-    '<div class="count">' +
-
-    count +
-
-    '</div>' +
-
-    '<small>' +
-
-    'javljanje danas' +
-
-    '</small>';
-}
-
-
-function showError(
-  message
-) {
-
-  const element =
-    document.getElementById(
-      'student'
-    );
-
-
-  element.style.display =
-    'block';
-
-
-  element.className =
-    'student error';
-
-
-  element.innerHTML =
-    escapeHtml(
-      message
-    );
-}
-
-
-/* =====================================================
-   ESCAPE HTML
-===================================================== */
-
-function escapeHtml(
-  text
-) {
-
-  const div =
-    document.createElement(
-      'div'
-    );
-
-
-  div.textContent =
-    text == null
-      ? ''
-      : String(text);
-
-
-  return div.innerHTML;
-}
-
 
 </script>
 
